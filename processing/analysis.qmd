@@ -1,0 +1,217 @@
+---
+title: "Análisis descriptivo y georreferenciación"
+subtitle: "Catastro de data centers en Chile"
+author: "Kevin Carrasco"
+date: today
+lang: es
+---
+
+Este documento carga los datos procesados en `preparation.qmd` y produce dos tipos de resultados: descriptivos de la distribución territorial de los data centers y mapas interactivos con su geolocalización. Las tablas y figuras se guardan en `output/`.
+
+# Librerías
+
+```{r}
+pacman::p_load(dplyr, ggplot2, sf, mapgl, knitr)
+
+```
+
+# Datos procesados
+
+```{r}
+datacenters <- readRDS("input/data/proc/datacenters.rds")
+datacenters_geo <- readRDS("input/data/proc/datacenters_geo.rds")
+
+nrow(datacenters)
+nrow(datacenters_geo)
+```
+
+De los `r nrow(datacenters)` registros del catastro, `r nrow(datacenters_geo)` cuentan con coordenadas y pueden representarse en el mapa.
+
+# Descriptivos
+
+## Distribución por región y estado
+
+```{r}
+tabla_region <- datacenters %>%
+  group_by(region) %>%
+  summarize(
+    n = n(),
+    operativos = sum(estado == "Operativo"),
+    en_construccion = sum(estado == "En construcción"),
+    planificados = sum(estado == "Planificado"),
+    capacidad_total_mw = sum(capacidad_MW, na.rm = TRUE),
+    sin_capacidad = sum(is.na(capacidad_MW))
+  ) %>%
+  arrange(desc(n))
+
+kable(tabla_region, caption = "Data centers por región según estado y capacidad informada")
+
+write.csv(tabla_region, "output/tables/table1.csv", row.names = FALSE)
+```
+
+## Comunas con mayor concentración
+
+```{r}
+#| fig-width: 8
+#| fig-height: 6
+
+grafico_comunas <- datacenters %>%
+  filter(!is.na(comuna)) %>%
+  count(comuna, estado) %>%
+  ggplot(aes(x = reorder(comuna, n), y = n, fill = estado)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("Operativo" = "#1B4965",
+                               "En construcción" = "#5FA8D3",
+                               "Planificado" = "#BEE9E8")) +
+  labs(
+    x = NULL,
+    y = "Número de data centers",
+    fill = "Estado",
+    title = "Data centers por comuna",
+    caption = "Fuente: elaboración propia en base a catastro de data centers en Chile"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+grafico_comunas
+
+ggsave("output/graphs/graph1.png", grafico_comunas, width = 8, height = 6, dpi = 300)
+```
+
+## Operadores
+
+```{r}
+tabla_operadores <- datacenters %>%
+  group_by(operador) %>%
+  summarize(
+    n = n(),
+    capacidad_total_mw = sum(capacidad_MW, na.rm = TRUE)
+  ) %>%
+  arrange(desc(n), desc(capacidad_total_mw)) %>%
+  slice_head(n = 15)
+
+kable(tabla_operadores, caption = "Operadores con mayor número de instalaciones en el catastro")
+
+write.csv(tabla_operadores, "output/tables/table2.csv", row.names = FALSE)
+```
+
+# Mapas interactivos
+
+Los mapas se construyen con `{mapgl}`, que implementa el visor MapLibre en R. El color de cada círculo indica el estado de la instalación y su tamaño la capacidad informada en megawatts.
+
+## Escalas
+
+La escala de tamaños se construye con `interpolate()` sobre la variable `capacidad_vis`, creada en el documento de preparación. El color se toma directamente de la variable `color_estado` mediante `get_column()`, de modo que la correspondencia entre categoría y color quede definida en los datos y no en el mapa.
+
+```{r}
+tamanos <- interpolate(
+  column = "capacidad_vis",
+  values = c(0, 5, 20, 100, 600),
+  stops = c(4, 6, 9, 14, 22)
+)
+```
+
+## Mapa nacional
+
+```{r}
+mapa_nacional <- maplibre(
+  style = carto_style("positron"),
+  center = c(-70.9, -36.5),
+  zoom = 3.6
+) %>%
+  add_circle_layer(
+    id = "datacenters",
+    source = datacenters_geo,
+    circle_color = get_column("color_estado"),
+    circle_opacity = 0.85,
+    circle_radius = tamanos,
+    circle_stroke_color = "#FFFFFF",
+    circle_stroke_width = 1,
+    tooltip = concat(
+      "<div style='font-size: 115%;'><b>", get_column("data_center"), "</b></div>",
+      "<b>Operador: </b>", get_column("operador"), "<br>",
+      "<b>Comuna: </b>", get_column("comuna"), "<br>",
+      "<b>Estado: </b>", get_column("estado"), "<br>",
+      "<b>Capacidad: </b>", get_column("capacidad_MW"), " MW"
+    ),
+    tooltip_style = tooltip_style(
+      max_width = 220,
+      padding = 8,
+      background_color = "#FFFFFF",
+      background_opacity = 0.9,
+      border_radius = 6
+    )
+  ) %>%
+  add_categorical_legend(
+    legend_title = "Estado",
+    values = c("Operativo", "En construcción", "Planificado"),
+    colors = c("#1B4965", "#5FA8D3", "#BEE9E8"),
+    circular_patches = TRUE,
+    position = "bottom-left"
+  )
+
+mapa_nacional
+```
+
+## Región Metropolitana
+
+Dado que la mayoría de las instalaciones se concentra en el área metropolitana de Santiago, el segundo mapa acerca la vista a esa zona. Varias instalaciones comparten dirección o campus, por lo que se activa la agrupación de puntos con `cluster_options()` para separarlos progresivamente a medida que se aumenta el zoom.
+
+```{r}
+datacenters_rm <- datacenters_geo %>%
+  filter(region == "Metropolitana")
+
+mapa_rm <- maplibre(
+  style = carto_style("positron"),
+  center = c(-70.68, -33.45),
+  zoom = 9.5
+) %>%
+  add_circle_layer(
+    id = "datacenters_rm",
+    source = datacenters_rm,
+    circle_color = get_column("color_estado"),
+    circle_opacity = 0.85,
+    circle_radius = tamanos,
+    circle_stroke_color = "#FFFFFF",
+    circle_stroke_width = 1,
+    cluster_options = cluster_options(
+      circle_opacity = 0.9,
+      count_stops = c(2, 5, 10),
+      radius_stops = c(14, 20, 26),
+      color_stops = c("#5FA8D3", "#1B4965", "#062F4F"),
+      cluster_radius = 40,
+      max_zoom = 12,
+      text_color = "#FFFFFF",
+      circle_stroke_color = "#FFFFFF",
+      circle_stroke_width = 1
+    ),
+    tooltip = concat(
+      "<div style='font-size: 115%;'><b>", get_column("data_center"), "</b></div>",
+      "<b>Operador: </b>", get_column("operador"), "<br>",
+      "<b>Dirección: </b>", get_column("direccion"), "<br>",
+      "<b>Estado: </b>", get_column("estado"), "<br>",
+      "<b>Capacidad: </b>", get_column("capacidad_MW"), " MW"
+    ),
+    tooltip_style = tooltip_style(
+      max_width = 220,
+      padding = 8,
+      background_color = "#FFFFFF",
+      background_opacity = 0.9,
+      border_radius = 6
+    )
+  )
+
+mapa_rm
+```
+
+# Registros sin geolocalización
+
+Los siguientes casos no cuentan con coordenadas en el catastro y quedan fuera de los mapas. Constituyen la lista de trabajo pendiente para completar la georreferenciación.
+
+```{r}
+datacenters %>%
+  filter(is.na(latitud)) %>%
+  select(operador, data_center, comuna, region, estado) %>%
+  kable(caption = "Registros pendientes de georreferenciación")
+```

@@ -1,0 +1,39 @@
+project:
+  type: website
+  output-dir: docs
+  execute-dir: project
+  render:
+    - index.qmd
+    - processing/preparation.qmd
+    - processing/analysis.qmd
+
+website:
+  title: "Data centers en Chile"
+  description: "Catastro y georreferenciación de data centers en Chile"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Presentación
+      - href: processing/preparation.qmd
+        text: Preparación
+      - href: processing/analysis.qmd
+        text: Análisis
+  page-footer:
+    center: "Kevin Carrasco | Núcleo Milenio sobre Evolución del Trabajo"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-title: Contenidos
+    lang: es
+    code-fold: true
+    code-tools: true
+    fig-align: center
+
+execute:
+  warning: false
+  message: false
+  echo: true
+
+# bibliography: input/bib/referencias.bib

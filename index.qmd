@@ -1,0 +1,159 @@
+---
+title: "Data centers en Chile"
+subtitle: "Catastro y georreferenciación"
+author:
+  - name: Kevin Carrasco
+    affiliation: "Núcleo Milenio sobre Evolución del Trabajo (M-New)"
+date: today
+lang: es
+---
+
+# Presentación
+
+Este proyecto organiza y visualiza un catastro de data centers instalados, en construcción y planificados en Chile. Cada registro corresponde a una instalación identificada por su operador, su ubicación comunal, su estado de avance y, cuando la información está disponible, su capacidad en megawatts y su superficie en metros cuadrados. La base se construye a partir de fuentes públicas de la industria, del reporte de prensa especializada, cuyos enlaces quedan registrados en las columnas de fuente.
+
+El propósito de esta primera versión es doble: dejar establecido un flujo de trabajo reproducible para seguir alimentando el catastro, y disponer de una visualización interactiva que permita examinar la distribución territorial de las instalaciones.
+
+# Organización del proyecto
+
+La estructura del proyecto sigue el protocolo [IPO](https://lisacoes.netlify.app/protocolos/a-ipo-rep/) (Input-Processing-Output) de reproducibilidad, desarrollado en el Laboratorio de Ciencia Social Abierta (LISA-COES). La carpeta `input` contiene la base original y los datos procesados, la carpeta `processing` contiene los documentos de preparación y análisis, y la carpeta `output` almacena tablas y figuras. Los detalles están en el archivo `README.md`.
+
+El flujo de trabajo tiene dos pasos. El documento de [preparación](processing/preparation.qmd) carga la base original en Excel, estandariza las variables, transforma el campo de geolocalización en coordenadas numéricas y guarda los datos procesados. El documento de [análisis](processing/analysis.qmd) carga esos datos y produce los descriptivos y los mapas.
+
+# Categorías de actividad
+
+El catastro clasifica cada instalación según su etapa de desarrollo. La distinción es relevante porque las tres categorías refieren a realidades distintas: la primera describe infraestructura que ya consume energía y agua, mientras que las dos siguientes describen compromisos de inversión cuya materialización depende de plazos, permisos y decisiones empresariales que pueden modificarse.
+
+| Categoría | Definición | Consideraciones para el registro | Fuente principal |
+|---|---|---|---|
+| Operativo | Instalación en funcionamiento, que presta servicios actualmente. Incluye instalaciones que operan parcialmente mientras se habilitan etapas posteriores. | Es la categoría con mejor cobertura de capacidad y superficie, porque los operadores publican las especificaciones de instalaciones en servicio. | Sitios oficiales de los operadores |
+| En construcción | Proyecto con obras iniciadas y sin entrar en operación. | Categorrización: la fecha de inicio de obras generalmente se reporta en prensa antes que en fuentes oficiales, de modo que el registro puede adelantarse o retrasarse respecto del estado efectivo. | Reportes de prensa |
+| Planificado | Proyecto anunciado públicamente, en tramitación de permisos o en evaluación ambiental, sin obras iniciadas. | Corresponde a la categoría `Planned` de la base de datos. Concentra los casos sin coordenadas, porque el emplazamiento exacto no siempre se informa al momento del anuncio. | Reportes de prensa y proyectos ingresados en el Servicio de Evaluación Ambiental (SAE) |
+
+::: callout-note
+Estas definiciones son un punto de partida y conviene definirlas de manera explícita antes de publicar la base, ya que falta definir cómo se clasifican los casos ambiguos: instalaciones ampliadas por etapas, proyectos anunciados y luego suspendidos (y reingresados o no al SAE), o campus que agrupan varios edificios con estados distintos.
+
+:::
+
+```{r}
+#| label: categorias
+#| echo: false
+
+library(dplyr)
+library(knitr)
+
+datacenters <- readRDS("input/data/proc/datacenters.rds")
+
+tabla_categorias <- datacenters %>%
+  group_by(Estado = estado) %>%
+  summarize(
+    Registros = n(),
+    Porcentaje = round(n() / nrow(datacenters) * 100, 1),
+    `Con coordenadas` = sum(!is.na(latitud)),
+    `Capacidad informada (MW)` = sum(capacidad_MW, na.rm = TRUE),
+    `Casos sin capacidad informada` = sum(is.na(capacidad_MW))
+  ) %>%
+  mutate(Estado = as.character(Estado))
+
+tabla_total <- datacenters %>%
+  summarize(
+    Estado = "Total",
+    Registros = n(),
+    Porcentaje = 100,
+    `Con coordenadas` = sum(!is.na(latitud)),
+    `Capacidad informada (MW)` = sum(capacidad_MW, na.rm = TRUE),
+    `Casos sin capacidad informada` = sum(is.na(capacidad_MW))
+  )
+
+bind_rows(tabla_categorias, tabla_total) %>%
+  kable(caption = "Data centers según categoría de actividad")
+```
+
+La columna de capacidad informada suma solo los registros que declaran megawatts, por lo que subestima el total de cada categoría en distinta medida. La columna de casos sin capacidad permite dimensionar esa subestimación.
+
+# Distribución territorial
+
+```{r}
+#| label: mapa-general
+#| echo: false
+
+library(sf)
+library(mapgl)
+
+datacenters_geo <- readRDS("input/data/proc/datacenters_geo.rds")
+
+tamanos <- interpolate(
+  column = "capacidad_vis",
+  values = c(0, 5, 20, 100, 600),
+  stops = c(4, 6, 9, 14, 22)
+)
+
+mapa <- maplibre(
+  style = carto_style("positron"),
+  center = c(-70.9, -36.5),
+  zoom = 3.6
+)
+
+for (categoria in levels(datacenters_geo$estado)) {
+  mapa <- mapa %>%
+    add_circle_layer(
+      id = categoria,
+      source = filter(datacenters_geo, estado == categoria),
+      circle_color = get_column("color_estado"),
+      circle_opacity = 0.85,
+      circle_radius = tamanos,
+      circle_stroke_color = "#FFFFFF",
+      circle_stroke_width = 1,
+      tooltip = concat(
+        "<div style='font-size: 115%;'><b>", get_column("data_center"), "</b></div>",
+        "<b>Operador: </b>", get_column("operador"), "<br>",
+        "<b>Comuna: </b>", get_column("comuna"), "<br>",
+        "<b>Estado: </b>", get_column("estado"), "<br>",
+        "<b>Capacidad: </b>", get_column("capacidad_MW"), " MW"
+      ),
+      tooltip_style = tooltip_style(
+        max_width = 220,
+        padding = 8,
+        background_color = "#FFFFFF",
+        background_opacity = 0.9,
+        border_radius = 6
+      )
+    )
+}
+
+mapa %>%
+  add_categorical_legend(
+    legend_title = "Estado",
+    values = c("Operativo", "En construcción", "Planificado"),
+    colors = c("#1B4965", "#5FA8D3", "#BEE9E8"),
+    circular_patches = TRUE,
+    position = "bottom-left"
+  ) %>%
+  add_layers_control(
+    position = "top-right",
+    collapsible = TRUE
+  )
+```
+
+El tamaño de cada círculo representa la capacidad informada en megawatts; los casos sin capacidad registrada se muestran con el radio mínimo. Al situar el cursor sobre un círculo se despliega la información de la instalación.
+
+Cada categoría de actividad se dibuja como una capa independiente. El control ubicado en la esquina superior derecha del mapa permite encender y apagar esas capas, de modo que puede visualizarse, por ejemplo, solo la infraestructura operativa o solo los proyectos anunciados.
+
+# Estado de la base
+
+```{r}
+#| label: resumen
+#| echo: false
+
+datacenters %>%
+  summarize(
+    registros = n(),
+    operadores = n_distinct(operador),
+    con_coordenadas = sum(!is.na(latitud)),
+    con_capacidad = sum(!is.na(capacidad_MW)),
+    con_superficie = sum(!is.na(superficie_m2))
+  ) %>%
+  kable(caption = "Cobertura del catastro")
+```
+
+La cobertura es desigual entre variables: la identificación del operador y la región está completa, mientras que la capacidad, la superficie y las coordenadas presentan datos faltantes. El detalle de los registros pendientes de georreferenciación se encuentra al final del documento de análisis.

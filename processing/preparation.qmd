@@ -1,0 +1,124 @@
+---
+title: "Preparación de datos"
+subtitle: "Catastro de data centers en Chile"
+author: "Kevin Carrasco"
+date: today
+lang: es
+---
+
+Este documento carga el catastro original de data centers, estandariza sus variables, transforma la columna de geolocalización en coordenadas numéricas y genera los objetos procesados que se utilizan en el documento de análisis.
+
+Siguiendo el [protocolo IPO](https://lisacoes.netlify.app/protocolos/a-ipo-rep/), este documento comienza cargando los datos originales desde `input/data/original/` y termina guardando los datos procesados en `input/data/proc/`.
+
+# Librerías
+
+```{r}
+
+pacman::p_load(readxl, dplyr, stringr, sf, mapgl)
+```
+
+# Datos originales
+
+```{r}
+datacenters_original <- read_excel("input/data/original/Data_centers_Chile_07062026.xlsx")
+
+dim(datacenters_original)
+names(datacenters_original)
+```
+
+La duodécima columna del archivo no tiene nombre en la planilla, ya que corresponde a una tercera fuente de verificación registrada solo en algunos casos. Se le asigna un nombre por posición.
+
+```{r}
+datacenters_original <- datacenters_original %>%
+  rename(fuente3 = 12)
+```
+
+# Estandarización de variables
+
+Se recortan espacios sobrantes en las variables de texto, se traduce la categoría `Planned` al español y se ordena `estado` como factor según el avance del proyecto. Los nombres de comuna y región se llevan a formato título, corrigiendo luego la conjunción "y" en los casos en que una instalación se declara en dos comunas.
+
+```{r}
+datacenters <- datacenters_original %>%
+  mutate(
+    operador = str_squish(operador),
+    data_center = str_squish(data_center),
+    direccion = str_squish(direccion),
+    comuna = str_to_title(str_squish(comuna)),
+    comuna = str_replace(comuna, " Y ", " y "),
+    region = str_to_title(str_squish(region)),
+    estado = case_when(
+      estado == "Planned" ~ "Planificado",
+      TRUE ~ estado
+    ),
+    estado = factor(estado, levels = c("Operativo", "En construcción", "Planificado"))
+  )
+
+count(datacenters, estado)
+count(datacenters, region, sort = TRUE)
+```
+
+# Coordenadas
+
+La variable `geolocalizacion` guarda latitud y longitud en un mismo campo de texto, separadas por coma. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.
+
+```{r}
+datacenters <- datacenters %>%
+  mutate(
+    geolocalizacion = str_replace_all(geolocalizacion, "(?<=[0-9]),(?=[0-9])", "."),
+    latitud = as.numeric(str_trim(str_split_i(geolocalizacion, ",", 1))),
+    longitud = as.numeric(str_trim(str_split_i(geolocalizacion, ",", 2)))
+  )
+```
+
+Revisión de los rangos obtenidos. Chile continental se ubica aproximadamente entre los -17 y -56 grados de latitud, y entre los -66 y -76 grados de longitud, de modo que cualquier valor fuera de ese rango indica un error de digitación en el catastro.
+
+```{r}
+datacenters %>%
+  summarize(
+    sin_coordenadas = sum(is.na(latitud)),
+    lat_min = min(latitud, na.rm = TRUE),
+    lat_max = max(latitud, na.rm = TRUE),
+    lon_min = min(longitud, na.rm = TRUE),
+    lon_max = max(longitud, na.rm = TRUE)
+  )
+
+datacenters %>%
+  filter(!is.na(latitud)) %>%
+  filter(latitud > -17 | latitud < -56 | longitud > -66 | longitud < -76) %>%
+  select(operador, data_center, comuna, latitud, longitud)
+```
+
+# Variables auxiliares para visualización
+
+Se crean dos variables destinadas exclusivamente a la visualización: un color asociado al estado de cada instalación y una versión de la capacidad en megawatts sin valores perdidos, necesaria para escalar el radio de los círculos en el mapa. Los casos sin capacidad informada quedan con el radio mínimo.
+
+```{r}
+datacenters <- datacenters %>%
+  mutate(
+    color_estado = case_when(
+      estado == "Operativo" ~ "#1B4965",
+      estado == "En construcción" ~ "#5FA8D3",
+      estado == "Planificado" ~ "#BEE9E8"
+    ),
+    capacidad_vis = if_else(is.na(capacidad_MW), 0, capacidad_MW)
+  )
+```
+
+# Datos geográficos
+
+Los registros con coordenadas válidas se convierten en una tabla de datos geográficos con `st_as_sf()`, usando el sistema de referencia WGS 84 (EPSG:4326). Se conservan las columnas de latitud y longitud con `remove = FALSE` para poder inspeccionarlas en las tablas.
+
+```{r}
+datacenters_geo <- datacenters %>%
+  filter(!is.na(latitud), !is.na(longitud)) %>%
+  st_as_sf(coords = c("longitud", "latitud"), crs = 4326, remove = FALSE)
+
+datacenters_geo
+```
+
+# Guardar datos procesados
+
+```{r}
+saveRDS(datacenters, "input/data/proc/datacenters.rds")
+saveRDS(datacenters_geo, "input/data/proc/datacenters_geo.rds")
+```
