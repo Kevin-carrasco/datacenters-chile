@@ -3,8 +3,8 @@ project:
   output-dir: docs
   execute-dir: project
   render:
-    - index.qmd
     - processing/preparation.qmd
+    - index.qmd
     - processing/analysis.qmd
 
 website:

@@ -294,16 +294,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="coordenadas" class="level1">
 <h1>Coordenadas</h1>
-<p>La variable <code>geolocalizacion</code> guarda latitud y longitud en un mismo campo de texto, separadas por coma. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.</p>
+<p>La variable <code>geolocalizacion</code> guarda latitud y longitud en un mismo campo de texto, separadas por coma. Algunos registros fueron ingresados con el signo menos tipográfico (<code>−</code>, U+2212) en lugar del guion (<code>-</code>), que <code>as.numeric()</code> no reconoce, por lo que se reemplaza primero. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Código</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"(?&lt;=[0-9]),(?=[0-9])"</span>, <span class="st">"."</span>),</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">latitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">1</span>))),</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">longitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">2</span>)))</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"−"</span>, <span class="st">"-"</span>),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"(?&lt;=[0-9]),(?=[0-9])"</span>, <span class="st">"."</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">latitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">1</span>))),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">longitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">2</span>)))</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Revisión de los rangos obtenidos. Chile continental se ubica aproximadamente entre los -17 y -56 grados de latitud, y entre los -66 y -76 grados de longitud, de modo que cualquier valor fuera de ese rango indica un error de digitación en el catastro.</p>
@@ -323,14 +324,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 1 × 5
   sin_coordenadas lat_min lat_max lon_min lon_max
             &lt;int&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
-1              21   -53.0   -32.8   -73.0   -70.5</code></pre>
+1              19   -53.0   -32.8   -73.0   -70.5</code></pre>
 </div>
 <details class="code-fold">
 <summary>Código</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud)) <span class="sc">%&gt;%</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(latitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">17</span> <span class="sc">|</span> latitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">56</span> <span class="sc">|</span> longitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">66</span> <span class="sc">|</span> longitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">76</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, comuna, latitud, longitud)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Registros con geolocalización informada que no pudo convertirse a número</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(geolocalizacion), <span class="fu">is.na</span>(latitud) <span class="sc">|</span> <span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, geolocalizacion)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 3
+# ℹ 3 variables: operador &lt;chr&gt;, data_center &lt;chr&gt;, geolocalizacion &lt;chr&gt;</code></pre>
+</div>
+<details class="code-fold">
+<summary>Código</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(latitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">17</span> <span class="sc">|</span> latitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">56</span> <span class="sc">|</span> longitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">66</span> <span class="sc">|</span> longitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">76</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, comuna, latitud, longitud)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 0 × 5
@@ -345,15 +357,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details class="code-fold">
 <summary>Código</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">color_estado =</span> <span class="fu">case_when</span>(</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Operativo"</span> <span class="sc">~</span> <span class="st">"#1B4965"</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"En construcción"</span> <span class="sc">~</span> <span class="st">"#5FA8D3"</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planificado"</span> <span class="sc">~</span> <span class="st">"#BEE9E8"</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">capacidad_vis =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(capacidad_MW), <span class="dv">0</span>, capacidad_MW)</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">color_estado =</span> <span class="fu">case_when</span>(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Operativo"</span> <span class="sc">~</span> <span class="st">"#1B4965"</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"En construcción"</span> <span class="sc">~</span> <span class="st">"#5FA8D3"</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planificado"</span> <span class="sc">~</span> <span class="st">"#BEE9E8"</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">capacidad_vis =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(capacidad_MW), <span class="dv">0</span>, capacidad_MW)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -363,19 +375,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details class="code-fold">
 <summary>Código</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>datacenters_geo <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud), <span class="sc">!</span><span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitud"</span>, <span class="st">"latitud"</span>), <span class="at">crs =</span> <span class="dv">4326</span>, <span class="at">remove =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>datacenters_geo</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>datacenters_geo <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud), <span class="sc">!</span><span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitud"</span>, <span class="st">"latitud"</span>), <span class="at">crs =</span> <span class="dv">4326</span>, <span class="at">remove =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>datacenters_geo</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Simple feature collection with 71 features and 16 fields
+<pre><code>Simple feature collection with 73 features and 16 fields
 Geometry type: POINT
 Dimension:     XY
 Bounding box:  xmin: -73.04843 ymin: -53.04668 xmax: -70.546 ymax: -32.836
 Geodetic CRS:  WGS 84
-# A tibble: 71 × 17
+# A tibble: 73 × 17
    operador           data_center direccion comuna region geolocalizacion estado
  * &lt;chr&gt;              &lt;chr&gt;       &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;           &lt;fct&gt; 
  1 Cirion Technologi… SAN1        Avenida … Huech… Metro… -33.357991, -7… Opera…
@@ -388,7 +400,7 @@ Geodetic CRS:  WGS 84
  8 Digital Realty     CHL01       Guacolda… Quili… Metro… -33.338535, -7… Opera…
  9 Digital Realty     CHL02       Guacolda… Quili… Metro… -33.338535, -7… Opera…
 10 Google             Google Dat… El Molin… Quili… Metro… -33.338535, -7… Opera…
-# ℹ 61 more rows
+# ℹ 63 more rows
 # ℹ 10 more variables: capacidad_MW &lt;dbl&gt;, superficie_m2 &lt;dbl&gt;, fuente &lt;chr&gt;,
 #   fuente2 &lt;chr&gt;, fuente3 &lt;chr&gt;, latitud &lt;dbl&gt;, longitud &lt;dbl&gt;,
 #   color_estado &lt;chr&gt;, capacidad_vis &lt;dbl&gt;, geometry &lt;POINT [°]&gt;</code></pre>
@@ -400,8 +412,8 @@ Geodetic CRS:  WGS 84
 <div class="cell">
 <details class="code-fold">
 <summary>Código</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters, <span class="st">"input/data/proc/datacenters.rds"</span>)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters_geo, <span class="st">"input/data/proc/datacenters_geo.rds"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters, <span class="st">"input/data/proc/datacenters.rds"</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters_geo, <span class="st">"input/data/proc/datacenters_geo.rds"</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 
@@ -862,129 +874,135 @@ Geodetic CRS:  WGS 84
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Ejecutar el código</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Preparación de datos"</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Catastro de data centers en Chile"</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Kevin Carrasco"</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="an">lang:</span><span class="co"> es</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>Este documento carga el catastro original de data centers, estandariza sus variables, transforma la columna de geolocalización en coordenadas numéricas y genera los objetos procesados que se utilizan en el documento de análisis.</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>Siguiendo el <span class="co">[</span><span class="ot">protocolo IPO</span><span class="co">](https://lisacoes.netlify.app/protocolos/a-ipo-rep/)</span>, este documento comienza cargando los datos originales desde <span class="in">`input/data/original/`</span> y termina guardando los datos procesados en <span class="in">`input/data/proc/`</span>.</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu"># Librerías</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(readxl, dplyr, stringr, sf, mapgl)</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="fu"># Datos originales</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>datacenters_original <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"input/data/original/Data_centers_Chile_07062026.xlsx"</span>)</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(datacenters_original)</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(datacenters_original)</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>La duodécima columna del archivo no tiene nombre en la planilla, ya que corresponde a una tercera fuente de verificación registrada solo en algunos casos. Se le asigna un nombre por posición.</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>datacenters_original <span class="ot">&lt;-</span> datacenters_original <span class="sc">%&gt;%</span></span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">fuente3 =</span> <span class="dv">12</span>)</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a><span class="fu"># Estandarización de variables</span></span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>Se recortan espacios sobrantes en las variables de texto, se traduce la categoría <span class="in">`Planned`</span> al español y se ordena <span class="in">`estado`</span> como factor según el avance del proyecto. Los nombres de comuna y región se llevan a formato título, corrigiendo luego la conjunción "y" en los casos en que una instalación se declara en dos comunas.</span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters_original <span class="sc">%&gt;%</span></span>
-<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">operador =</span> <span class="fu">str_squish</span>(operador),</span>
-<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">data_center =</span> <span class="fu">str_squish</span>(data_center),</span>
-<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">direccion =</span> <span class="fu">str_squish</span>(direccion),</span>
-<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">comuna =</span> <span class="fu">str_to_title</span>(<span class="fu">str_squish</span>(comuna)),</span>
-<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">comuna =</span> <span class="fu">str_replace</span>(comuna, <span class="st">" Y "</span>, <span class="st">" y "</span>),</span>
-<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">region =</span> <span class="fu">str_to_title</span>(<span class="fu">str_squish</span>(region)),</span>
-<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">estado =</span> <span class="fu">case_when</span>(</span>
-<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planned"</span> <span class="sc">~</span> <span class="st">"Planificado"</span>,</span>
-<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> estado</span>
-<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">estado =</span> <span class="fu">factor</span>(estado, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Operativo"</span>, <span class="st">"En construcción"</span>, <span class="st">"Planificado"</span>))</span>
-<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(datacenters, estado)</span>
-<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(datacenters, region, <span class="at">sort =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb20-65"><a href="#cb20-65" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-66"><a href="#cb20-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-67"><a href="#cb20-67" aria-hidden="true" tabindex="-1"></a><span class="fu"># Coordenadas</span></span>
-<span id="cb20-68"><a href="#cb20-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-69"><a href="#cb20-69" aria-hidden="true" tabindex="-1"></a>La variable <span class="in">`geolocalizacion`</span> guarda latitud y longitud en un mismo campo de texto, separadas por coma. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.</span>
-<span id="cb20-70"><a href="#cb20-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-73"><a href="#cb20-73" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-74"><a href="#cb20-74" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb20-75"><a href="#cb20-75" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb20-76"><a href="#cb20-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"(?&lt;=[0-9]),(?=[0-9])"</span>, <span class="st">"."</span>),</span>
-<span id="cb20-77"><a href="#cb20-77" aria-hidden="true" tabindex="-1"></a>    <span class="at">latitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">1</span>))),</span>
-<span id="cb20-78"><a href="#cb20-78" aria-hidden="true" tabindex="-1"></a>    <span class="at">longitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">2</span>)))</span>
-<span id="cb20-79"><a href="#cb20-79" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-80"><a href="#cb20-80" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-81"><a href="#cb20-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-82"><a href="#cb20-82" aria-hidden="true" tabindex="-1"></a>Revisión de los rangos obtenidos. Chile continental se ubica aproximadamente entre los -17 y -56 grados de latitud, y entre los -66 y -76 grados de longitud, de modo que cualquier valor fuera de ese rango indica un error de digitación en el catastro.</span>
-<span id="cb20-83"><a href="#cb20-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-86"><a href="#cb20-86" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-87"><a href="#cb20-87" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb20-88"><a href="#cb20-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
-<span id="cb20-89"><a href="#cb20-89" aria-hidden="true" tabindex="-1"></a>    <span class="at">sin_coordenadas =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(latitud)),</span>
-<span id="cb20-90"><a href="#cb20-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat_min =</span> <span class="fu">min</span>(latitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb20-91"><a href="#cb20-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat_max =</span> <span class="fu">max</span>(latitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb20-92"><a href="#cb20-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">lon_min =</span> <span class="fu">min</span>(longitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb20-93"><a href="#cb20-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">lon_max =</span> <span class="fu">max</span>(longitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb20-94"><a href="#cb20-94" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-95"><a href="#cb20-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-96"><a href="#cb20-96" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb20-97"><a href="#cb20-97" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud)) <span class="sc">%&gt;%</span></span>
-<span id="cb20-98"><a href="#cb20-98" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(latitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">17</span> <span class="sc">|</span> latitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">56</span> <span class="sc">|</span> longitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">66</span> <span class="sc">|</span> longitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">76</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb20-99"><a href="#cb20-99" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, comuna, latitud, longitud)</span>
-<span id="cb20-100"><a href="#cb20-100" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-101"><a href="#cb20-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-102"><a href="#cb20-102" aria-hidden="true" tabindex="-1"></a><span class="fu"># Variables auxiliares para visualización</span></span>
-<span id="cb20-103"><a href="#cb20-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-104"><a href="#cb20-104" aria-hidden="true" tabindex="-1"></a>Se crean dos variables destinadas exclusivamente a la visualización: un color asociado al estado de cada instalación y una versión de la capacidad en megawatts sin valores perdidos, necesaria para escalar el radio de los círculos en el mapa. Los casos sin capacidad informada quedan con el radio mínimo.</span>
-<span id="cb20-105"><a href="#cb20-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-108"><a href="#cb20-108" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-109"><a href="#cb20-109" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb20-110"><a href="#cb20-110" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb20-111"><a href="#cb20-111" aria-hidden="true" tabindex="-1"></a>    <span class="at">color_estado =</span> <span class="fu">case_when</span>(</span>
-<span id="cb20-112"><a href="#cb20-112" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Operativo"</span> <span class="sc">~</span> <span class="st">"#1B4965"</span>,</span>
-<span id="cb20-113"><a href="#cb20-113" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"En construcción"</span> <span class="sc">~</span> <span class="st">"#5FA8D3"</span>,</span>
-<span id="cb20-114"><a href="#cb20-114" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planificado"</span> <span class="sc">~</span> <span class="st">"#BEE9E8"</span></span>
-<span id="cb20-115"><a href="#cb20-115" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb20-116"><a href="#cb20-116" aria-hidden="true" tabindex="-1"></a>    <span class="at">capacidad_vis =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(capacidad_MW), <span class="dv">0</span>, capacidad_MW)</span>
-<span id="cb20-117"><a href="#cb20-117" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb20-118"><a href="#cb20-118" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-119"><a href="#cb20-119" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-120"><a href="#cb20-120" aria-hidden="true" tabindex="-1"></a><span class="fu"># Datos geográficos</span></span>
-<span id="cb20-121"><a href="#cb20-121" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-122"><a href="#cb20-122" aria-hidden="true" tabindex="-1"></a>Los registros con coordenadas válidas se convierten en una tabla de datos geográficos con <span class="in">`st_as_sf()`</span>, usando el sistema de referencia WGS 84 (EPSG:4326). Se conservan las columnas de latitud y longitud con <span class="in">`remove = FALSE`</span> para poder inspeccionarlas en las tablas.</span>
-<span id="cb20-123"><a href="#cb20-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-126"><a href="#cb20-126" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-127"><a href="#cb20-127" aria-hidden="true" tabindex="-1"></a>datacenters_geo <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
-<span id="cb20-128"><a href="#cb20-128" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud), <span class="sc">!</span><span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
-<span id="cb20-129"><a href="#cb20-129" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitud"</span>, <span class="st">"latitud"</span>), <span class="at">crs =</span> <span class="dv">4326</span>, <span class="at">remove =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb20-130"><a href="#cb20-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-131"><a href="#cb20-131" aria-hidden="true" tabindex="-1"></a>datacenters_geo</span>
-<span id="cb20-132"><a href="#cb20-132" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb20-133"><a href="#cb20-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-134"><a href="#cb20-134" aria-hidden="true" tabindex="-1"></a><span class="fu"># Guardar datos procesados</span></span>
-<span id="cb20-135"><a href="#cb20-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-138"><a href="#cb20-138" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb20-139"><a href="#cb20-139" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters, <span class="st">"input/data/proc/datacenters.rds"</span>)</span>
-<span id="cb20-140"><a href="#cb20-140" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters_geo, <span class="st">"input/data/proc/datacenters_geo.rds"</span>)</span>
-<span id="cb20-141"><a href="#cb20-141" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Preparación de datos"</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Catastro de data centers en Chile"</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Kevin Carrasco"</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="an">lang:</span><span class="co"> es</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>Este documento carga el catastro original de data centers, estandariza sus variables, transforma la columna de geolocalización en coordenadas numéricas y genera los objetos procesados que se utilizan en el documento de análisis.</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>Siguiendo el <span class="co">[</span><span class="ot">protocolo IPO</span><span class="co">](https://lisacoes.netlify.app/protocolos/a-ipo-rep/)</span>, este documento comienza cargando los datos originales desde <span class="in">`input/data/original/`</span> y termina guardando los datos procesados en <span class="in">`input/data/proc/`</span>.</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="fu"># Librerías</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(readxl, dplyr, stringr, sf, mapgl)</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a><span class="fu"># Datos originales</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>datacenters_original <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"input/data/original/Data_centers_Chile_07062026.xlsx"</span>)</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(datacenters_original)</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(datacenters_original)</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>La duodécima columna del archivo no tiene nombre en la planilla, ya que corresponde a una tercera fuente de verificación registrada solo en algunos casos. Se le asigna un nombre por posición.</span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>datacenters_original <span class="ot">&lt;-</span> datacenters_original <span class="sc">%&gt;%</span></span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">fuente3 =</span> <span class="dv">12</span>)</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a><span class="fu"># Estandarización de variables</span></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>Se recortan espacios sobrantes en las variables de texto, se traduce la categoría <span class="in">`Planned`</span> al español y se ordena <span class="in">`estado`</span> como factor según el avance del proyecto. Los nombres de comuna y región se llevan a formato título, corrigiendo luego la conjunción "y" en los casos en que una instalación se declara en dos comunas.</span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters_original <span class="sc">%&gt;%</span></span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">operador =</span> <span class="fu">str_squish</span>(operador),</span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">data_center =</span> <span class="fu">str_squish</span>(data_center),</span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">direccion =</span> <span class="fu">str_squish</span>(direccion),</span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">comuna =</span> <span class="fu">str_to_title</span>(<span class="fu">str_squish</span>(comuna)),</span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">comuna =</span> <span class="fu">str_replace</span>(comuna, <span class="st">" Y "</span>, <span class="st">" y "</span>),</span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">region =</span> <span class="fu">str_to_title</span>(<span class="fu">str_squish</span>(region)),</span>
+<span id="cb22-56"><a href="#cb22-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">estado =</span> <span class="fu">case_when</span>(</span>
+<span id="cb22-57"><a href="#cb22-57" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planned"</span> <span class="sc">~</span> <span class="st">"Planificado"</span>,</span>
+<span id="cb22-58"><a href="#cb22-58" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> estado</span>
+<span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">estado =</span> <span class="fu">factor</span>(estado, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Operativo"</span>, <span class="st">"En construcción"</span>, <span class="st">"Planificado"</span>))</span>
+<span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-62"><a href="#cb22-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-63"><a href="#cb22-63" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(datacenters, estado)</span>
+<span id="cb22-64"><a href="#cb22-64" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(datacenters, region, <span class="at">sort =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-65"><a href="#cb22-65" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-66"><a href="#cb22-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-67"><a href="#cb22-67" aria-hidden="true" tabindex="-1"></a><span class="fu"># Coordenadas</span></span>
+<span id="cb22-68"><a href="#cb22-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-69"><a href="#cb22-69" aria-hidden="true" tabindex="-1"></a>La variable <span class="in">`geolocalizacion`</span> guarda latitud y longitud en un mismo campo de texto, separadas por coma. Algunos registros fueron ingresados con el signo menos tipográfico (<span class="in">`−`</span>, U+2212) en lugar del guion (<span class="in">`-`</span>), que <span class="in">`as.numeric()`</span> no reconoce, por lo que se reemplaza primero. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.</span>
+<span id="cb22-70"><a href="#cb22-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-73"><a href="#cb22-73" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-74"><a href="#cb22-74" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-75"><a href="#cb22-75" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-76"><a href="#cb22-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"−"</span>, <span class="st">"-"</span>),</span>
+<span id="cb22-77"><a href="#cb22-77" aria-hidden="true" tabindex="-1"></a>    <span class="at">geolocalizacion =</span> <span class="fu">str_replace_all</span>(geolocalizacion, <span class="st">"(?&lt;=[0-9]),(?=[0-9])"</span>, <span class="st">"."</span>),</span>
+<span id="cb22-78"><a href="#cb22-78" aria-hidden="true" tabindex="-1"></a>    <span class="at">latitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">1</span>))),</span>
+<span id="cb22-79"><a href="#cb22-79" aria-hidden="true" tabindex="-1"></a>    <span class="at">longitud =</span> <span class="fu">as.numeric</span>(<span class="fu">str_trim</span>(<span class="fu">str_split_i</span>(geolocalizacion, <span class="st">","</span>, <span class="dv">2</span>)))</span>
+<span id="cb22-80"><a href="#cb22-80" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-81"><a href="#cb22-81" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-82"><a href="#cb22-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-83"><a href="#cb22-83" aria-hidden="true" tabindex="-1"></a>Revisión de los rangos obtenidos. Chile continental se ubica aproximadamente entre los -17 y -56 grados de latitud, y entre los -66 y -76 grados de longitud, de modo que cualquier valor fuera de ese rango indica un error de digitación en el catastro.</span>
+<span id="cb22-84"><a href="#cb22-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-87"><a href="#cb22-87" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-88"><a href="#cb22-88" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-89"><a href="#cb22-89" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb22-90"><a href="#cb22-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">sin_coordenadas =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(latitud)),</span>
+<span id="cb22-91"><a href="#cb22-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat_min =</span> <span class="fu">min</span>(latitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-92"><a href="#cb22-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat_max =</span> <span class="fu">max</span>(latitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-93"><a href="#cb22-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">lon_min =</span> <span class="fu">min</span>(longitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-94"><a href="#cb22-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">lon_max =</span> <span class="fu">max</span>(longitud, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-95"><a href="#cb22-95" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-96"><a href="#cb22-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-97"><a href="#cb22-97" aria-hidden="true" tabindex="-1"></a><span class="co"># Registros con geolocalización informada que no pudo convertirse a número</span></span>
+<span id="cb22-98"><a href="#cb22-98" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-99"><a href="#cb22-99" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(geolocalizacion), <span class="fu">is.na</span>(latitud) <span class="sc">|</span> <span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-100"><a href="#cb22-100" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, geolocalizacion)</span>
+<span id="cb22-101"><a href="#cb22-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-102"><a href="#cb22-102" aria-hidden="true" tabindex="-1"></a>datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-103"><a href="#cb22-103" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-104"><a href="#cb22-104" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(latitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">17</span> <span class="sc">|</span> latitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">56</span> <span class="sc">|</span> longitud <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">66</span> <span class="sc">|</span> longitud <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">76</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-105"><a href="#cb22-105" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(operador, data_center, comuna, latitud, longitud)</span>
+<span id="cb22-106"><a href="#cb22-106" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-107"><a href="#cb22-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-108"><a href="#cb22-108" aria-hidden="true" tabindex="-1"></a><span class="fu"># Variables auxiliares para visualización</span></span>
+<span id="cb22-109"><a href="#cb22-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-110"><a href="#cb22-110" aria-hidden="true" tabindex="-1"></a>Se crean dos variables destinadas exclusivamente a la visualización: un color asociado al estado de cada instalación y una versión de la capacidad en megawatts sin valores perdidos, necesaria para escalar el radio de los círculos en el mapa. Los casos sin capacidad informada quedan con el radio mínimo.</span>
+<span id="cb22-111"><a href="#cb22-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-114"><a href="#cb22-114" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-115"><a href="#cb22-115" aria-hidden="true" tabindex="-1"></a>datacenters <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-116"><a href="#cb22-116" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-117"><a href="#cb22-117" aria-hidden="true" tabindex="-1"></a>    <span class="at">color_estado =</span> <span class="fu">case_when</span>(</span>
+<span id="cb22-118"><a href="#cb22-118" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Operativo"</span> <span class="sc">~</span> <span class="st">"#1B4965"</span>,</span>
+<span id="cb22-119"><a href="#cb22-119" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"En construcción"</span> <span class="sc">~</span> <span class="st">"#5FA8D3"</span>,</span>
+<span id="cb22-120"><a href="#cb22-120" aria-hidden="true" tabindex="-1"></a>      estado <span class="sc">==</span> <span class="st">"Planificado"</span> <span class="sc">~</span> <span class="st">"#BEE9E8"</span></span>
+<span id="cb22-121"><a href="#cb22-121" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb22-122"><a href="#cb22-122" aria-hidden="true" tabindex="-1"></a>    <span class="at">capacidad_vis =</span> <span class="fu">if_else</span>(<span class="fu">is.na</span>(capacidad_MW), <span class="dv">0</span>, capacidad_MW)</span>
+<span id="cb22-123"><a href="#cb22-123" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-124"><a href="#cb22-124" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-125"><a href="#cb22-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-126"><a href="#cb22-126" aria-hidden="true" tabindex="-1"></a><span class="fu"># Datos geográficos</span></span>
+<span id="cb22-127"><a href="#cb22-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-128"><a href="#cb22-128" aria-hidden="true" tabindex="-1"></a>Los registros con coordenadas válidas se convierten en una tabla de datos geográficos con <span class="in">`st_as_sf()`</span>, usando el sistema de referencia WGS 84 (EPSG:4326). Se conservan las columnas de latitud y longitud con <span class="in">`remove = FALSE`</span> para poder inspeccionarlas en las tablas.</span>
+<span id="cb22-129"><a href="#cb22-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-132"><a href="#cb22-132" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-133"><a href="#cb22-133" aria-hidden="true" tabindex="-1"></a>datacenters_geo <span class="ot">&lt;-</span> datacenters <span class="sc">%&gt;%</span></span>
+<span id="cb22-134"><a href="#cb22-134" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(latitud), <span class="sc">!</span><span class="fu">is.na</span>(longitud)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-135"><a href="#cb22-135" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"longitud"</span>, <span class="st">"latitud"</span>), <span class="at">crs =</span> <span class="dv">4326</span>, <span class="at">remove =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb22-136"><a href="#cb22-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-137"><a href="#cb22-137" aria-hidden="true" tabindex="-1"></a>datacenters_geo</span>
+<span id="cb22-138"><a href="#cb22-138" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-139"><a href="#cb22-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-140"><a href="#cb22-140" aria-hidden="true" tabindex="-1"></a><span class="fu"># Guardar datos procesados</span></span>
+<span id="cb22-141"><a href="#cb22-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-144"><a href="#cb22-144" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-145"><a href="#cb22-145" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters, <span class="st">"input/data/proc/datacenters.rds"</span>)</span>
+<span id="cb22-146"><a href="#cb22-146" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(datacenters_geo, <span class="st">"input/data/proc/datacenters_geo.rds"</span>)</span>
+<span id="cb22-147"><a href="#cb22-147" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copiar al portapapeles" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

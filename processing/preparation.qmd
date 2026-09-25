@@ -59,11 +59,12 @@ count(datacenters, region, sort = TRUE)
 
 # Coordenadas
 
-La variable `geolocalizacion` guarda latitud y longitud en un mismo campo de texto, separadas por coma. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.
+La variable `geolocalizacion` guarda latitud y longitud en un mismo campo de texto, separadas por coma. Algunos registros fueron ingresados con el signo menos tipográfico (`−`, U+2212) en lugar del guion (`-`), que `as.numeric()` no reconoce, por lo que se reemplaza primero. Un registro fue ingresado con coma decimal, por lo que antes de separar el campo se reemplazan las comas que están entre dígitos por punto: la coma que separa ambas coordenadas va seguida de un espacio, de modo que no se ve afectada por este reemplazo.
 
 ```{r}
 datacenters <- datacenters %>%
   mutate(
+    geolocalizacion = str_replace_all(geolocalizacion, "−", "-"),
     geolocalizacion = str_replace_all(geolocalizacion, "(?<=[0-9]),(?=[0-9])", "."),
     latitud = as.numeric(str_trim(str_split_i(geolocalizacion, ",", 1))),
     longitud = as.numeric(str_trim(str_split_i(geolocalizacion, ",", 2)))
@@ -81,6 +82,11 @@ datacenters %>%
     lon_min = min(longitud, na.rm = TRUE),
     lon_max = max(longitud, na.rm = TRUE)
   )
+
+# Registros con geolocalización informada que no pudo convertirse a número
+datacenters %>%
+  filter(!is.na(geolocalizacion), is.na(latitud) | is.na(longitud)) %>%
+  select(operador, data_center, geolocalizacion)
 
 datacenters %>%
   filter(!is.na(latitud)) %>%
