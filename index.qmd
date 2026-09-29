@@ -3,7 +3,11 @@ title: "Data centers en Chile"
 subtitle: "Catastro y georreferenciación"
 author:
   - name: Kevin Carrasco
-    affiliation: "Núcleo Milenio sobre Evolución del Trabajo (M-New)"
+    affiliations:
+      - name: "Núcleo Milenio sobre Evolución del Trabajo (M-New)"
+        url: https://www.m-new.org/
+      - name: "SEED - DipLab"
+        url: https://diplab.eu/
 date: today
 lang: es
 ---
