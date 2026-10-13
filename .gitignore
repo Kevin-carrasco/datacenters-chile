@@ -4,6 +4,7 @@
 .Ruserdata
 /.quarto/
 *_files/
+!docs/**/*_files/
 *_cache/
 .DS_Store
 
