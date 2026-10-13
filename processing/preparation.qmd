@@ -20,7 +20,7 @@ pacman::p_load(readxl, dplyr, stringr, sf, mapgl)
 # Datos originales
 
 ```{r}
-datacenters_original <- read_excel("input/data/original/Data_centers_Chile_07062026.xlsx")
+datacenters_original <- read_excel("input/data/original/Data_centers_Chile_13102026.xlsx")
 
 dim(datacenters_original)
 names(datacenters_original)

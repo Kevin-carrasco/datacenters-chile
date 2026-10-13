@@ -1,10 +1,9 @@
 "region","n","operativos","en_construccion","planificados","capacidad_total_mw","sin_capacidad"
-"Metropolitana",77,61,2,14,1126.9,44
-"Valparaíso",8,6,1,1,165,4
+"Metropolitana",78,60,2,16,1111.9,44
+"Valparaíso",8,5,0,3,235,3
 "Los Lagos",2,2,0,0,0,2
+"Antofagasta",1,0,0,1,400,0
 "Araucanía",1,1,0,0,0,1
-"Atacama",1,0,0,1,400,0
 "Biobío",1,1,0,0,0,1
 "Los Ríos",1,1,0,0,10,0
 "Magallanes",1,1,0,0,0.3,0
-NA,1,NA,NA,NA,0,1
